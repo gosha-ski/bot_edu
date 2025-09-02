@@ -1,7 +1,7 @@
 import { MongoClient } from 'mongodb';
 
 export class MongoDriver {
-	static url = 'mongodb://localhost:27017';
+	static url = 'mongodb://localhost:27018';
 	static isConnected = false;
 	static client = new MongoClient(MongoDriver.url, {
 		maxPoolSize: 10,

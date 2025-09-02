@@ -1,0 +1,44 @@
+name: Manual workflow VERSION2
+
+on:
+  workflow_dispatch:
+    # Inputs the workflow accepts.
+    inputs:
+      name:
+        # Friendly description to be shown in the UI instead of 'name'
+        description: 'Person to greet'
+        # Default value if no value is explicitly provided
+        default: 'World'
+        # Input has to be provided for the workflow to run
+        required: true
+        # The data type of the input
+        type: string
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "greet"
+  greet:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Runs a single command using the runners shell
+      - name: Execute remote SSH commands using password
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          password: ${{ secrets.PASSWORD }}
+          script: |
+            cd nodeAppTest
+            cd bot_edu
+            git pull
+
+      - name: Run docker compose
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          SERVER_URL: ${{ secrets.SERVER_URL }}
+          TG_URL: ${{ secrets.TG_URL }}
+        run: docker compose down
+        run: docker compose up

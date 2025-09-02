@@ -13,5 +13,9 @@ services:
     build: .
     restart: always
     network_mode: 'host'
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+      - SERVER_URL=${SERVER_URL}
+      - TG_URL=${TG_URL}
     depends_on:
       - mongo

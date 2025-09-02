@@ -34,9 +34,6 @@ jobs:
           username: ${{ secrets.USER }}
           password: ${{ secrets.PASSWORD }}
           script: |
-            export BOT_TOKEN=${{ secrets.BOT_TOKEN }}
-            export SERVER_URL=${{ secrets.SERVER_URL }}
-            export TG_URL=${{ secrets.TG_URL }}
             cd nodeAppTest
             cd bot_edu
             git pull

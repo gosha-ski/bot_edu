@@ -38,11 +38,8 @@ jobs:
             cd bot_edu
             git pull
 
-
       - name: Run docker compose
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           SERVER_URL: ${{ secrets.SERVER_URL }}
           TG_URL: ${{ secrets.TG_URL }}
-        run: docker compose down
-        run: docker compose up

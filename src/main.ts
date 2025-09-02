@@ -5,6 +5,11 @@ import 'dotenv/config';
 import * as yaml from 'js-yaml';
 const path = require('path');
 const fs = require('fs');
+import { MongoDriver, getUserCollection } from './mongoDB';
+
+(async () => {
+	await MongoDriver.connect();
+})();
 
 const ymlText: any = yaml.load(fs.readFileSync(path.resolve(__dirname, '../src/example.yml'), 'utf8'));
 
@@ -12,7 +17,14 @@ const BOT_TOKEN = process.env.BOT_TOKEN;
 const SERVER_URL = process.env.SERVER_URL;
 const TG_URL = process.env.TG_URL;
 
+enum States {
+	default = 'default',
+	consult = 'consult',
+}
+
 const buttonIds = {
+	consultButton: 'consultButtonId',
+
 	level1: {
 		NEED_I_LICENCE: `NEED_I_LICENCE`,
 		I_WILL_GET_LICENCE: `I_WILL_GET_LICENCE`,
@@ -59,6 +71,8 @@ const buttonIds = {
 	},
 };
 
+const userCollection = getUserCollection();
+
 const app = express();
 
 app.use(bodyParser.json());
@@ -73,6 +87,13 @@ app.post('/bot_api', async (request, response) => {
 	if (request.body.message) {
 		const message = request.body.message.text;
 		if (message == '/start') {
+			const userId = request.body.message.from.id;
+			const user = await userCollection.findOne({ userId: userId });
+			if (!user) {
+				await userCollection.insertOne({ userId: userId, state: States.default, phone: null });
+			} else {
+				await userCollection.updateOne({ userId: userId }, { $set: { state: States.default } });
+			}
 			const chatId = request.body.message.chat.id;
 			await axios.post(`${TG_URL}/bot${BOT_TOKEN}/sendMessage`, {
 				chat_id: chatId,
@@ -86,8 +107,15 @@ app.post('/bot_api', async (request, response) => {
 					],
 				},
 			});
+		} else {
+			const userId = request.body.message.from.id;
+			const user = await userCollection.findOne({ userId: userId });
+			if (user && user.state == States.consult) {
+				await userCollection.updateOne({ userId: userId }, { $set: { phone: request.body.message.text, state: States.default } });
+			}
 		}
 	} else if (request.body.callback_query) {
+		const userId = request.body.callback_query.from.id;
 		const callbackQuery = request.body.callback_query;
 		const chatId = callbackQuery.message.chat.id;
 		const buttonId = JSON.parse(callbackQuery.data).buttonId;
@@ -203,6 +231,7 @@ app.post('/bot_api', async (request, response) => {
 					],
 				},
 			});
+			await userCollection.updateOne({ userId: userId }, { $set: { state: States.consult } });
 		}
 		////////////////LEVEL 3
 		else if (buttonId == buttonIds.level3.block1.button1) {
@@ -246,9 +275,10 @@ app.post('/bot_api', async (request, response) => {
 		} else if (buttonId == buttonIds.level3.block2.button3) {
 			await axios.post(`${TG_URL}/bot${BOT_TOKEN}/sendMessage`, {
 				chat_id: chatId,
-				text: 'Буду получать лицензию >> Очное обучение >> Заказать консультацию >> TEXT END // HELLO WORLD',
+				text: 'Буду получать лицензию >> Очное обучение >> Заказать консультацию >> ВВедите номер телефона // HELLO WORLD',
 				parse_mode: 'markdown',
 			});
+			await userCollection.updateOne({ userId: userId }, { $set: { state: States.consult } });
 		} else if (buttonId == buttonIds.level3.block3.button1) {
 			await axios.post(`${TG_URL}/bot${BOT_TOKEN}/sendMessage`, {
 				chat_id: chatId,
